@@ -1,19 +1,19 @@
+//! Implements the two-party multiplication protocol from here: <https://eprint.iacr.org/2019/523>
+
+use mpz_ot::{ObliviousReceive, ObliviousSend};
 use mpz_share_conversion_core::Field;
 use rand::{rngs::ThreadRng, thread_rng, CryptoRng, RngCore};
 use std::marker::PhantomData;
 
-mod role;
-use role::{M2ARole, OTReceiver, OTSender};
-
-pub struct M2A<T: Field, U: M2ARole, V: CryptoRng + RngCore = ThreadRng> {
+pub struct M2A<T: Field, U, V: CryptoRng + RngCore = ThreadRng> {
     _field: PhantomData<T>,
     _role: PhantomData<U>,
     rng: V,
 }
 
-impl<T: Field, V: CryptoRng + RngCore> M2A<T, OTSender, V> {}
+impl<T: Field, U: ObliviousSend<T>, V: CryptoRng + RngCore> M2A<T, U, V> {}
 
-impl<T: Field, V: CryptoRng + RngCore> M2A<T, OTReceiver, V> {
+impl<T: Field, U: ObliviousReceive<bool, T>, V: CryptoRng + RngCore> M2A<T, U, V> {
     pub fn beta(&mut self) -> T {
         todo!()
     }
@@ -23,7 +23,7 @@ impl<T: Field, V: CryptoRng + RngCore> M2A<T, OTReceiver, V> {
     }
 }
 
-impl<T: Field, U: M2ARole, V: CryptoRng + RngCore> M2A<T, U, V> {
+impl<T: Field, U, V: CryptoRng + RngCore> M2A<T, U, V> {
     // Bits needed for to represent elements of the field
     const KAPPA: u32 = T::BIT_SIZE;
 
@@ -44,7 +44,7 @@ impl<T: Field, U: M2ARole, V: CryptoRng + RngCore> M2A<T, U, V> {
     }
 }
 
-impl<T: Field, U: M2ARole> Default for M2A<T, U, ThreadRng> {
+impl<T: Field, U> Default for M2A<T, U, ThreadRng> {
     fn default() -> Self {
         let rng = thread_rng();
         Self {

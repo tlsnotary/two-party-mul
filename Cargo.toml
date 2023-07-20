@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 mpz-share-conversion-core = { git = "https://github.com/tlsnotary/mpz", rev = "86f1687" }
+rand = "0.8"

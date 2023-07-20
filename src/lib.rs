@@ -11,14 +11,20 @@ pub struct M2A<T: Field, U, V: CryptoRng + RngCore = ThreadRng> {
     rng: V,
 }
 
-impl<T: Field, U: ObliviousSend<T>, V: CryptoRng + RngCore> M2A<T, U, V> {}
+impl<T: Field, U: ObliviousSend<T>, V: CryptoRng + RngCore> M2A<T, U, V> {
+    fn alpha() -> T {}
+
+    fn a_tilde() -> T {}
+
+    fn a_head() -> T {}
+}
 
 impl<T: Field, U: ObliviousReceive<bool, T>, V: CryptoRng + RngCore> M2A<T, U, V> {
-    pub fn beta(&mut self) -> T {
+    fn beta() -> T {
         todo!()
     }
 
-    pub fn b_tilde() -> T {
+    fn b_tilde() -> T {
         todo!()
     }
 }
@@ -39,7 +45,7 @@ impl<T: Field, U, V: CryptoRng + RngCore> M2A<T, U, V> {
     // Number of OTs
     const ETA: u32 = Self::ZETA * Self::L;
 
-    fn gadget(&self) -> T {
+    fn gadget(&self) -> [T; Self::ETA as usize] {
         todo!()
     }
 }

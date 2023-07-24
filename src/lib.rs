@@ -29,16 +29,6 @@ pub struct M2A<T: Field> {
 }
 
 impl<T: Field> M2A<T> {
-    pub fn new() -> Self {
-        let mut rng = thread_rng();
-        let gadget = std::array::from_fn(|_| T::rand(&mut rng));
-
-        Self {
-            _field: PhantomData,
-            rng,
-            gadget,
-        }
-    }
     // Note that the return dimension is [[[T; 2]; ZETA]; L] which we simplify a little bit
     fn alpha(&mut self) -> [[T; 2]; ETA] {
         let mut alpha = [[T::zero(); 2]; ETA];
@@ -83,12 +73,59 @@ impl<T: Field> M2A<T> {
         b_tilde
     }
 
-    fn cote(&mut self) {
-        let alpha = self.alpha();
-        let beta = self.beta();
-
-        // TODO: Implement the OTs
+    fn omega_a(&mut self) -> [[T; 2]; ETA] {
+        std::array::from_fn(|_| [T::rand(&mut self.rng), T::rand(&mut self.rng)])
     }
+
+    fn chi_head() -> [T; L] {
+        std::array::from_fn(|_| T::rand(&mut thread_rng()))
+    }
+
+    fn chi_tilde() -> [T; L] {
+        std::array::from_fn(|_| T::rand(&mut thread_rng()))
+    }
+
+    fn r(
+        chi_tilde: [T; L],
+        chi_head: [T; L],
+        z_tilde_a: [T; ETA],
+        z_head_a: [T; ETA],
+    ) -> [T; ZETA] {
+        todo!();
+    }
+
+    fn u(chi_tilde: [T; L], chi_head: [T; L], a_tilde: [T; ZETA], a_head: [T; ZETA]) -> [T; L] {
+        todo!();
+    }
+}
+
+impl<T: Field> Default for M2A<T> {
+    fn default() -> Self {
+        let mut rng = thread_rng();
+        let gadget = std::array::from_fn(|_| T::rand(&mut rng));
+
+        Self {
+            _field: PhantomData,
+            rng,
+            gadget,
+        }
+    }
+}
+
+pub fn func_cote<T: Field>(
+    alpha: [[T; 2]; ETA],
+    beta: [T; ETA],
+    omega_a: [[T; 2]; ETA],
+) -> ([[T; 2]; ETA], [[T; 2]; ETA]) {
+    let mut omega_b: [[T; 2]; ETA] = [[T::zero(); 2]; ETA];
+
+    for k in 0..ETA {
+        omega_b[k] = [
+            alpha[k][0] * beta[k] + -omega_a[k][0],
+            alpha[k][1] * beta[k] + -omega_a[k][1],
+        ];
+    }
+    (omega_a, omega_b)
 }
 
 trait DotProduct: Copy {

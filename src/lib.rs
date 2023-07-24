@@ -1,71 +1,93 @@
 //! Implements the two-party multiplication protocol (Protocol 1, page 12) from
 //! <https://eprint.iacr.org/2019/523>
 
-use mpz_ot::{ObliviousReceive, ObliviousSend};
 use mpz_share_conversion_core::Field;
-use rand::{rngs::ThreadRng, thread_rng, CryptoRng, RngCore};
+use rand::{rngs::ThreadRng, thread_rng, Rng};
 use std::marker::PhantomData;
 
 // Some constants defined in the paper
 //
 // Bits needed for to represent elements of the field
-const KAPPA: u32 = 256;
+const KAPPA: usize = 256;
 
 // Security parameter
-const S: u32 = 80;
+const S: usize = 80;
 
 // Redundancy factor
-const ZETA: u32 = KAPPA + 2 * S;
+const ZETA: usize = KAPPA + 2 * S;
 
 // Batch size
-const L: u32 = 1;
+const L: usize = 1;
 
 // Number of OTs
-const ETA: u32 = ZETA * L;
+const ETA: usize = ZETA * L;
 
-pub struct M2A<T: Field, U, V: CryptoRng + RngCore = ThreadRng> {
+pub struct M2A<T: Field> {
     _field: PhantomData<T>,
-    _role: PhantomData<U>,
-    rng: V,
-    gadget: [T; ETA as usize],
+    rng: ThreadRng,
+    gadget: [T; ZETA],
 }
 
-impl<T: Field, U: ObliviousSend<T>, V: CryptoRng + RngCore> M2A<T, U, V> {
-    fn alpha() -> T {
-        todo!()
-    }
-
-    fn a_tilde() -> T {
-        todo!()
-    }
-
-    fn a_head() -> T {
-        todo!()
-    }
-}
-
-impl<T: Field, U: ObliviousReceive<bool, T>, V: CryptoRng + RngCore> M2A<T, U, V> {
-    fn beta() -> T {
-        todo!()
-    }
-
-    fn b_tilde() -> T {
-        todo!()
-    }
-}
-
-impl<T: Field, U, V: CryptoRng + RngCore> M2A<T, U, V> {}
-
-impl<T: Field, U> Default for M2A<T, U, ThreadRng> {
-    fn default() -> Self {
+impl<T: Field> M2A<T> {
+    pub fn new() -> Self {
         let mut rng = thread_rng();
         let gadget = std::array::from_fn(|_| T::rand(&mut rng));
+
         Self {
             _field: PhantomData,
-            _role: PhantomData,
             rng,
             gadget,
         }
+    }
+    // Note that the return dimension is [[[T; 2]; ZETA]; L] which we simplify a little bit
+    fn alpha(&mut self) -> [[T; 2]; ETA] {
+        let mut alpha = [[T::zero(); 2]; ETA];
+
+        for k in 0..L {
+            let a_tilde = self.a_tilde();
+            let a_head = self.a_head();
+
+            for i in 0..ZETA {
+                alpha[k * ZETA + i] = [a_tilde[i], a_head[i]];
+            }
+        }
+
+        alpha
+    }
+
+    fn a_tilde(&mut self) -> [T; ZETA] {
+        std::array::from_fn(|_| T::rand(&mut self.rng))
+    }
+
+    fn a_head(&mut self) -> [T; ZETA] {
+        std::array::from_fn(|_| T::rand(&mut self.rng))
+    }
+
+    fn beta(&mut self) -> [T; ETA] {
+        let mut beta = [T::zero(); ETA];
+        beta.iter_mut().for_each(|el| {
+            if self.rng.gen() {
+                *el = T::one()
+            }
+        });
+        beta
+    }
+
+    fn b_tilde(gadget: [T; ZETA], beta: [T; ETA]) -> [T; L] {
+        let mut b_tilde = [T::zero(); L];
+        for k in 0..L {
+            let mut beta_part = [T::zero(); ZETA];
+            beta_part.copy_from_slice(&beta[k * ZETA..(k + 1) * ZETA]);
+            b_tilde[k] = gadget.dot(beta_part);
+        }
+        b_tilde
+    }
+
+    fn cote(&mut self) {
+        let alpha = self.alpha();
+        let beta = self.beta();
+
+        // TODO: Implement the OTs
     }
 }
 

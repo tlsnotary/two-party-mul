@@ -1,22 +1,47 @@
-//! Implements the two-party multiplication protocol from here: <https://eprint.iacr.org/2019/523>
+//! Implements the two-party multiplication protocol (Protocol 1, page 12) from
+//! <https://eprint.iacr.org/2019/523>
 
 use mpz_ot::{ObliviousReceive, ObliviousSend};
 use mpz_share_conversion_core::Field;
 use rand::{rngs::ThreadRng, thread_rng, CryptoRng, RngCore};
 use std::marker::PhantomData;
 
+// Some constants defined in the paper
+//
+// Bits needed for to represent elements of the field
+const KAPPA: u32 = 256;
+
+// Security parameter
+const S: u32 = 80;
+
+// Redundancy factor
+const ZETA: u32 = KAPPA + 2 * S;
+
+// Batch size
+const L: u32 = 1;
+
+// Number of OTs
+const ETA: u32 = ZETA * L;
+
 pub struct M2A<T: Field, U, V: CryptoRng + RngCore = ThreadRng> {
     _field: PhantomData<T>,
     _role: PhantomData<U>,
     rng: V,
+    gadget: [T; ETA as usize],
 }
 
 impl<T: Field, U: ObliviousSend<T>, V: CryptoRng + RngCore> M2A<T, U, V> {
-    fn alpha() -> T {}
+    fn alpha() -> T {
+        todo!()
+    }
 
-    fn a_tilde() -> T {}
+    fn a_tilde() -> T {
+        todo!()
+    }
 
-    fn a_head() -> T {}
+    fn a_head() -> T {
+        todo!()
+    }
 }
 
 impl<T: Field, U: ObliviousReceive<bool, T>, V: CryptoRng + RngCore> M2A<T, U, V> {
@@ -29,34 +54,17 @@ impl<T: Field, U: ObliviousReceive<bool, T>, V: CryptoRng + RngCore> M2A<T, U, V
     }
 }
 
-impl<T: Field, U, V: CryptoRng + RngCore> M2A<T, U, V> {
-    // Bits needed for to represent elements of the field
-    const KAPPA: u32 = T::BIT_SIZE;
-
-    // Security parameter
-    const S: u32 = 80;
-
-    // Redundancy factor
-    const ZETA: u32 = Self::KAPPA + 2 * Self::S;
-
-    // Batch size
-    const L: u32 = 1;
-
-    // Number of OTs
-    const ETA: u32 = Self::ZETA * Self::L;
-
-    fn gadget(&self) -> [T; Self::ETA as usize] {
-        todo!()
-    }
-}
+impl<T: Field, U, V: CryptoRng + RngCore> M2A<T, U, V> {}
 
 impl<T: Field, U> Default for M2A<T, U, ThreadRng> {
     fn default() -> Self {
-        let rng = thread_rng();
+        let mut rng = thread_rng();
+        let gadget = std::array::from_fn(|_| T::rand(&mut rng));
         Self {
             _field: PhantomData,
             _role: PhantomData,
             rng,
+            gadget,
         }
     }
 }

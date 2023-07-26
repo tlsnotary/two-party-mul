@@ -111,6 +111,54 @@ impl<T: Field> M2A<T> {
 
         u
     }
+
+    fn bob_check(
+        r: [T; ZETA],
+        u: [T; L],
+        beta: [T; ETA],
+        chi_tilde: [T; L],
+        chi_head: [T; L],
+        z_tilde_b: [T; ETA],
+        z_head_b: [T; ETA],
+    ) -> bool {
+        for j in 0..ZETA {
+            let lhs = r[j]
+                + (0..L).fold(T::zero(), |acc, i| {
+                    acc + chi_tilde[i] * z_tilde_b[i * ZETA + j]
+                        + chi_head[i] * z_head_b[i * ZETA + j]
+                });
+
+            let rhs = (0..L).fold(T::zero(), |acc, i| acc + beta[i * ZETA + j] * u[i]);
+
+            if lhs != rhs {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    fn gamma(input: [T; L], tilde: [T; L]) -> [T; L] {
+        let mut gamma = [T::zero(); L];
+
+        gamma
+            .iter_mut()
+            .enumerate()
+            .for_each(|(k, el)| *el = input[k] + -tilde[k]);
+
+        gamma
+    }
+
+    //TODO: Is there a mistake in the paper with b_tilde ?
+    fn output(input: [T; L], gamma: [T; L], gadget: [T; ZETA], z_tilde: [T; ETA]) -> [T; L] {
+        let mut z = [T::zero(); L];
+
+        for (i, el) in z.iter_mut().enumerate() {
+            *el = input[i] * gamma[i]
+                + (0..ZETA).fold(T::zero(), |acc, j| acc + gadget[i] * z_tilde[i * ZETA + j]);
+        }
+        z
+    }
 }
 
 impl<T: Field> Default for M2A<T> {

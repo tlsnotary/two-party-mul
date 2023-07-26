@@ -33,23 +33,23 @@ impl<T: Field> M2A<T> {
     fn alpha(&mut self) -> [[T; 2]; ETA] {
         let mut alpha = [[T::zero(); 2]; ETA];
 
-        for k in 0..L {
-            let a_tilde = self.a_tilde();
-            let a_head = self.a_head();
+        let a_tilde = self.a_tilde();
+        let a_head = self.a_head();
 
+        for k in 0..L {
             for i in 0..ZETA {
-                alpha[k * ZETA + i] = [a_tilde[i], a_head[i]];
+                alpha[k * ZETA + i] = [a_tilde[k], a_head[k]];
             }
         }
 
         alpha
     }
 
-    fn a_tilde(&mut self) -> [T; ZETA] {
+    fn a_tilde(&mut self) -> [T; L] {
         std::array::from_fn(|_| T::rand(&mut self.rng))
     }
 
-    fn a_head(&mut self) -> [T; ZETA] {
+    fn a_head(&mut self) -> [T; L] {
         std::array::from_fn(|_| T::rand(&mut self.rng))
     }
 
@@ -91,11 +91,25 @@ impl<T: Field> M2A<T> {
         z_tilde_a: [T; ETA],
         z_head_a: [T; ETA],
     ) -> [T; ZETA] {
-        todo!();
+        let mut r = [T::zero(); ZETA];
+
+        for j in 0..ZETA {
+            r[j] = (0..L).fold(T::zero(), |acc, i| {
+                acc + chi_tilde[i] * z_tilde_a[i * ZETA + j] + chi_head[i] * z_head_a[i * ZETA + j]
+            });
+        }
+
+        r
     }
 
-    fn u(chi_tilde: [T; L], chi_head: [T; L], a_tilde: [T; ZETA], a_head: [T; ZETA]) -> [T; L] {
-        todo!();
+    fn u(chi_tilde: [T; L], chi_head: [T; L], a_tilde: [T; L], a_head: [T; L]) -> [T; L] {
+        let mut u = [T::zero(); L];
+
+        u.iter_mut()
+            .enumerate()
+            .for_each(|(k, el)| *el = chi_tilde[k] * a_tilde[k] + chi_head[k] * a_head[k]);
+
+        u
     }
 }
 

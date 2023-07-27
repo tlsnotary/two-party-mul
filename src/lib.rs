@@ -25,16 +25,16 @@ const ETA: usize = ZETA * L;
 pub struct M2A<T: Field> {
     _field: PhantomData<T>,
     rng: ThreadRng,
-    gadget: [T; ZETA],
 }
 
 impl<T: Field> M2A<T> {
-    // Note that the return dimension is [[[T; 2]; ZETA]; L] which we simplify a little bit
-    fn alpha(&mut self) -> [[T; 2]; ETA] {
-        let mut alpha = [[T::zero(); 2]; ETA];
+    fn gadget(&mut self) -> [T; ZETA] {
+        std::array::from_fn(|_| T::rand(&mut self.rng))
+    }
 
-        let a_tilde = self.a_tilde();
-        let a_head = self.a_head();
+    // Note that the return dimension is [[[T; 2]; ZETA]; L] which we simplify a little bit
+    fn alpha(&mut self, a_tilde: [T; L], a_head: [T; L]) -> [[T; 2]; ETA] {
+        let mut alpha = [[T::zero(); 2]; ETA];
 
         for k in 0..L {
             for i in 0..ZETA {
@@ -63,7 +63,7 @@ impl<T: Field> M2A<T> {
         beta
     }
 
-    fn b_tilde(gadget: [T; ZETA], beta: [T; ETA]) -> [T; L] {
+    fn b_tilde(&self, gadget: [T; ZETA], beta: [T; ETA]) -> [T; L] {
         let mut b_tilde = [T::zero(); L];
         for k in 0..L {
             let mut beta_part = [T::zero(); ZETA];
@@ -77,15 +77,16 @@ impl<T: Field> M2A<T> {
         std::array::from_fn(|_| [T::rand(&mut self.rng), T::rand(&mut self.rng)])
     }
 
-    fn chi_head() -> [T; L] {
+    fn chi_head(&self) -> [T; L] {
         std::array::from_fn(|_| T::rand(&mut thread_rng()))
     }
 
-    fn chi_tilde() -> [T; L] {
+    fn chi_tilde(&self) -> [T; L] {
         std::array::from_fn(|_| T::rand(&mut thread_rng()))
     }
 
     fn r(
+        &self,
         chi_tilde: [T; L],
         chi_head: [T; L],
         z_tilde_a: [T; ETA],
@@ -102,7 +103,7 @@ impl<T: Field> M2A<T> {
         r
     }
 
-    fn u(chi_tilde: [T; L], chi_head: [T; L], a_tilde: [T; L], a_head: [T; L]) -> [T; L] {
+    fn u(&self, chi_tilde: [T; L], chi_head: [T; L], a_tilde: [T; L], a_head: [T; L]) -> [T; L] {
         let mut u = [T::zero(); L];
 
         u.iter_mut()
@@ -113,6 +114,7 @@ impl<T: Field> M2A<T> {
     }
 
     fn bob_check(
+        &self,
         r: [T; ZETA],
         u: [T; L],
         beta: [T; ETA],
@@ -138,7 +140,7 @@ impl<T: Field> M2A<T> {
         true
     }
 
-    fn gamma(input: [T; L], tilde: [T; L]) -> [T; L] {
+    fn gamma(&self, input: [T; L], tilde: [T; L]) -> [T; L] {
         let mut gamma = [T::zero(); L];
 
         gamma
@@ -150,7 +152,7 @@ impl<T: Field> M2A<T> {
     }
 
     //TODO: Is there a mistake in the paper with b_tilde ?
-    fn output(input: [T; L], gamma: [T; L], gadget: [T; ZETA], z_tilde: [T; ETA]) -> [T; L] {
+    fn output(&self, input: [T; L], gamma: [T; L], gadget: [T; ZETA], z_tilde: [T; ETA]) -> [T; L] {
         let mut z = [T::zero(); L];
 
         for (i, el) in z.iter_mut().enumerate() {
@@ -164,12 +166,10 @@ impl<T: Field> M2A<T> {
 impl<T: Field> Default for M2A<T> {
     fn default() -> Self {
         let mut rng = thread_rng();
-        let gadget = std::array::from_fn(|_| T::rand(&mut rng));
 
         Self {
             _field: PhantomData,
             rng,
-            gadget,
         }
     }
 }
@@ -203,5 +203,39 @@ impl<T: Field, const N: usize> DotProduct for [T; N] {
         self.into_iter()
             .zip(other)
             .fold(T::zero(), |acc, (a, b)| acc + a * b)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use mpz_share_conversion_core::fields::p256::P256;
+
+    use super::*;
+
+    #[test]
+    fn test_two_party_mul() {
+        let mut m2a = M2A::<P256>::default();
+        let gadget = m2a.gadget();
+
+        // Step 1
+        let beta = m2a.beta();
+        let b_tilde = m2a.b_tilde(gadget, beta);
+
+        // Step 2
+        let a_tilde = m2a.a_tilde();
+        let a_head = m2a.a_head();
+        let alpha = m2a.alpha(a_tilde, a_head);
+
+        // Step 3
+        let (omega_a, omega_b) = func_cote(alpha, beta, m2a.omega_a());
+        let [z_tilde_a, z_head_a] = [omega_a[0], omega_a[1]];
+        let [z_tilde_b, z_head_b] = [omega_b[0], omega_b[1]];
+
+        // Step 4
+        let (chi_tilde, chi_head) = (m2a.chi_tilde(), m2a.chi_head());
+
+        // Step 5
+        let r = m2a.r(chi_tilde, chi_head, z_tilde_a, z_head_a);
+        let u = m2a.u(chi_tilde, chi_head, a_tilde, a_head);
     }
 }

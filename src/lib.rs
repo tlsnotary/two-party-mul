@@ -289,7 +289,10 @@ mod tests {
             assert_eq!(z_a[k] + z_b[k], a[k] * b[k]);
 
             //Check Bob's output. Indeed z_b = -z_a
-            assert_ne!(z_b[k], -z_a[k]);
+            assert_ne!(
+                z_b[k], -z_a[k],
+                "z_b equals -z_a, so Alice knows Bob's output"
+            );
         }
     }
 }
